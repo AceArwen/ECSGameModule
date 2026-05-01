@@ -1,0 +1,6 @@
+- Set up a Setting Context using the SettingContext.tsx from teaproto
+--> This context allows you to collect all the useState etc... to use theme throughout the app
+--> Passes data deeply into the tree
+If you don't use this pattern, you'll have to pass props down manually through each child component as parameters
+
+https://react.dev/reference/react/useContext - Help documentation
