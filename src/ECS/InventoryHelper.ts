@@ -1,8 +1,8 @@
-import type { Entity } from "./ObjectDefinitions";
 import { ComponentRegistry } from "./Registry";
+import type { Entity } from "./Components";
 
 export class InventoryManager {
-    constructor(private registry: ComponentRegistry) {}
+    constructor(private registry: ComponentRegistry) { }
 
     getChildEntities(entity: Entity) {
         const entities: Entity[] = [];
@@ -55,13 +55,12 @@ export class InventoryManager {
     }
 
     getInventoryByOwner(ownerEntity: Entity) {
-        
+
         return this.registry.components.get("isOwner").get(ownerEntity)?.ownedEntity || undefined;
     }
 
-    getInventorySlots(ownerEntity: Entity) {
-        const inventory = this.getInventoryByOwner(ownerEntity);
-        return inventory ? this.registry.components.get("inventory").get(inventory)?.slots ?? [] : [];
+    getInventorySlots(inventoryEntity: Entity) {
+        return inventoryEntity ? this.registry.components.get("inventory").get(inventoryEntity)?.slots ?? [] : [];
     }
 
     slotHasObject(slotEntity: Entity) {
@@ -197,7 +196,7 @@ export class InventoryManager {
                 this.removeQuantityFromSlot(fromSlotEntity, amountRemoved);
             }
         }
-    }   
+    }
 
     moveObjectFromSlotToInventory(slotEntity: Entity, inventoryEntity: Entity) {
         const slot = this.registry.components.get("slot").get(slotEntity);
@@ -217,19 +216,19 @@ export class InventoryManager {
     getSlotObjectName(slotEntity: Entity): string {
         const slot = this.registry.components.get("slot").get(slotEntity);
         if (!slot || !slot.object) return "";
-        
+
         let objectEntity: Entity;
         if (this.registry.components.get("instance").has(slot.object)) {
             objectEntity = this.registry.components.get("instance").get(slot.object)!.definition;
         } else {
             objectEntity = slot.object;
         }
-        
+
         // Check if the object instance has a description component first
         if (this.registry.components.get("description").has(slot.object)) {
             return this.registry.components.get("description").get(slot.object)!.name;
         }
-        
+
         // Fall back to description component on the definition
         return this.registry.components.get("description").get(objectEntity)?.name || "";
     }

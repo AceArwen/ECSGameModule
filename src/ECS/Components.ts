@@ -1,6 +1,7 @@
 import { ObjectId } from "./ObjectDefinitions";
-import type { Entity } from "./ObjectDefinitions";
 
+// Entity type definition
+export type Entity = number; // Just an ID
 
 // All entities must have or point to a definition
 export type ObjectDefinitionComponent = {
@@ -44,4 +45,13 @@ export type HasOwnerComponent = {
 
 export type IsOwnerComponent = {
     ownedEntity: Entity;
+};
+
+// Item components
+export type WeaponComponent = {
+    damage: number;
+};
+
+export type HealComponent = {
+    amount: number;
 };

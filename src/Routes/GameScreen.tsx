@@ -1,47 +1,91 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useSettings } from '../Context/SettingsContext';
+import { useECS } from '../Context/ECSContext';
+import { useGameConsole } from '../Context/GameConsoleContext';
+import { CommandFactory } from '../ECS/Commands';
 import styles from '../styles/GameScreen.module.css';
 import Button from '../components/Button';
 
 export default function GameScreen() {
     const navigate = useNavigate();
     const { textSettings } = useSettings();
+    const { registry, player, inputSystem } = useECS();
+    const { messages, addMessage, clearMessages } = useGameConsole();
     
-    // Load console messages from localStorage on mount
-    const [consoleMessages, setConsoleMessages] = useState<Array<{text: string, isPlayer: boolean}>>(() => {
-        const saved = localStorage.getItem('consoleMessages');
-        return saved ? JSON.parse(saved) : [];
-    });
-
     const [inputValue, setInputValue] = useState('');
+    const [historyIndex, setHistoryIndex] = useState(-1);
     const consoleContentRef = useRef<HTMLDivElement>(null);
 
-    // Save console messages to localStorage whenever they change
-    const addConsoleMessage = (message: {text: string, isPlayer: boolean}) => {
-        setConsoleMessages(prev => {
-            const newMessages = [...prev, message];
-            localStorage.setItem('consoleMessages', JSON.stringify(newMessages));
-            return newMessages;
-        });
+    // Extract command history from existing console messages (chronological order, with duplicates)
+    const getCommandHistory = () => {
+        return messages
+            .filter(msg => msg.isPlayer)
+            .map(msg => msg.text);
     };
 
     useEffect(() => {
         if (consoleContentRef.current) {
             consoleContentRef.current.scrollTop = consoleContentRef.current.scrollHeight;
         }
-    }, [consoleMessages]);
+    }, [messages]);
 
     const handleConsoleSubmit = () => {
-        addConsoleMessage({ text: inputValue, isPlayer: true });
+        if (inputValue.trim() === '') return;
+        
+        // Add player's command to console (this automatically adds to history via localStorage)
+        addMessage({ text: inputValue, isPlayer: true });
+        
+        // Process the command through InputSystem - returns command descriptors
+        const commandDescriptors = inputSystem.processCommand(inputValue);
+        
+        // Create actual commands from descriptors using CommandFactory
+        const commands = CommandFactory.createCommands(
+            commandDescriptors, 
+            addMessage, 
+            clearMessages
+        );
+        
+        // Execute all commands
+        commands.forEach(command => {
+            command.execute();
+        });
+        
+        // Reset input and history index
         setInputValue('');
+        setHistoryIndex(-1);
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter') {
             handleConsoleSubmit();
-        } else if (e.key === 'g' || e.key === 'G') {
-            addConsoleMessage({ text: 'I am the Game Overlord, who is summoning me?', isPlayer: false });
+            return;
+        }
+        
+        // Handle arrow key navigation for command history
+        const commandHistory = getCommandHistory();
+        
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (commandHistory.length === 0) return;
+            
+            const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
+            setHistoryIndex(newIndex);
+            setInputValue(commandHistory[commandHistory.length - 1 - newIndex]);
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex <= 0) {
+                setHistoryIndex(-1);
+                setInputValue('');
+                return;
+            }
+            
+            const newIndex = historyIndex - 1;
+            setHistoryIndex(newIndex);
+            setInputValue(commandHistory[commandHistory.length - 1 - newIndex]);
+        } else if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') {
+            // Reset history index when typing new characters
+            setHistoryIndex(-1);
         }
     };
 
@@ -53,7 +97,7 @@ export default function GameScreen() {
 
             <div className={styles.consoleContainer}>
                 <div ref={consoleContentRef} className={styles.consoleContent}>
-                    {consoleMessages.map((message, index) => (
+                    {messages.map((message, index) => (
                         <div key={index} className={styles.consoleMessage}>
                             <span className={styles.consolePrefix} style={{
                                 fontSize: `${textSettings.textSize}px`,

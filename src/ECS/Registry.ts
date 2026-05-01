@@ -1,7 +1,7 @@
-import type { ConsummableTagComponent, DescriptionComponent, HasOwnerComponent, InventoryComponent, IsOwnerComponent, ObjectDefinitionComponent, ObjectInstanceComponent, SlotComponent, StackableComponent, UsableTagComponent } from "./Components";
-import type { Entity } from "./ObjectDefinitions";
-import { ObjectId } from "./ObjectDefinitions";
-import { InventoryManager } from "./RegistryHelper";
+import type { ConsummableTagComponent, DescriptionComponent, HasOwnerComponent, HealComponent, InventoryComponent, IsOwnerComponent, ObjectDefinitionComponent, ObjectInstanceComponent, SlotComponent, StackableComponent, UsableTagComponent, WeaponComponent } from "./Components";
+import type { Entity } from "./Components";
+import { ObjectId, ObjectManager} from "./ObjectDefinitions";
+import { InventoryManager } from "./InventoryHelper";
 
 interface ReadonlyComponentStore<T> {
     get(entity: Entity): T | undefined;
@@ -91,6 +91,8 @@ type ComponentMap = {
     slot: SlotComponent;
     hasOwner: HasOwnerComponent;
     isOwner: IsOwnerComponent;
+    weapon: WeaponComponent;
+    heal: HealComponent;
 };
 
 export class ComponentRegistry {
@@ -104,6 +106,8 @@ export class ComponentRegistry {
     private slotStore = new ComponentStore<SlotComponent>();
     private hasOwnerStore = new ComponentStore<HasOwnerComponent>();
     private isOwnerStore = new ComponentStore<IsOwnerComponent>();
+    private weaponStore = new ComponentStore<WeaponComponent>();
+    private healStore = new ComponentStore<HealComponent>();
 
     private storeMap = new StoreMap<ComponentMap>({
         definition: this.definitionStore,
@@ -115,15 +119,18 @@ export class ComponentRegistry {
         inventory: this.inventoryStore,
         slot: this.slotStore,
         hasOwner: this.hasOwnerStore,
-        isOwner: this.isOwnerStore
+        isOwner: this.isOwnerStore,
+        weapon: this.weaponStore,
+        heal: this.healStore
     });
 
     public components = this.storeMap.readonlyView();
 
     // Helper for entity management operations
     inventoryHelper: InventoryManager;
+    objectManager: ObjectManager;
 
-    // Store for pre-created object definitions
+    // Store for pre-created object definitions (used by ObjectManager)
     private objectDefinitions: Record<ObjectId, Entity> = {} as Record<ObjectId, Entity>;
 
     // Track which entities are object definitions
@@ -133,6 +140,7 @@ export class ComponentRegistry {
 
     constructor() {
         this.inventoryHelper = new InventoryManager(this);
+        this.objectManager = new ObjectManager(this);
     }
 
     removeEntity(entity: Entity, visited: Set<Entity> = new Set()) {
@@ -199,28 +207,14 @@ export class ComponentRegistry {
         if (this.definitionEntities.has(entity)) {
             throw new Error("Entity is already a definition");
         }
-
         this.definitionStore.add(entity, {
             objectType
         });
         this.definitionEntities.add(entity);
+        this.objectDefinitions[objectType] = entity;
     }
 
     getDefinitionEntity(objectType: ObjectId): Entity | undefined {
         return this.objectDefinitions[objectType];
-    }
-
-    createObjectInstance(objectType: ObjectId) {
-        const definitionEntity = this.getDefinitionEntity(objectType);
-        
-        if (!definitionEntity) {
-            throw new Error(`Object definition for ${objectType} not found. Make sure createObjectDefinition() was called.`);
-        }
-
-        const entityId = this.createEntity();
-        this.instanceStore.add(entityId, {
-            definition: definitionEntity
-        });
-        return entityId;
     }
 }
