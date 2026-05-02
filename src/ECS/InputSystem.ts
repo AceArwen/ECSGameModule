@@ -17,32 +17,32 @@ export class InputSystem {
     processCommand(command: string): CommandDescriptor[] {
         const trimmedCommand = command.toLowerCase().trim();
         
-        switch (trimmedCommand) {
-            case 'i':
-            case 'inventory':
-                return this.toggleInventory();
-
-            case 'c':
-            case 'clear':
-                return [{ type: 'clearConsole' }];
-            
-            case 'help':
-            case 'h':
-                return [{ type: 'addMessage', message: this.getHelpText() }];
-            
-            case 'status':
-            case 's':
-                return [{ type: 'addMessage', message: this.getStatusText() }];
-            
-            default:
-                // Handle inventory slot selection (1-9)
-                if (this.inventoryOpen && trimmedCommand >= '1' && trimmedCommand <= '9') {
-                    const slotIndex = parseInt(trimmedCommand) - 1;
-                    return this.selectInventorySlot(slotIndex);
-                }
-                
-                return [{ type: 'addMessage', message: `Unknown command: "${command}". Type "help" for available commands.` }];
+        // Define command patterns with regex
+        const patterns = [
+            { regex: /^(?:i|inventory)$/, handler: () => this.toggleInventory() },
+            { regex: /^(?:c|clear)$/, handler: () => [{ type: 'clearConsole' as const }] },
+            { regex: /^(?:help|h)$/, handler: () => [{ type: 'addMessage' as const, message: this.getHelpText() }] },
+            { regex: /^(?:status|s)$/, handler: () => [{ type: 'addMessage' as const, message: this.getStatusText() }] },
+            { regex: /^[1-9]$/, handler: () => this.handleInventorySlot(trimmedCommand) }
+        ];
+        
+        // Test patterns in order
+        for (const pattern of patterns) {
+            if (pattern.regex.test(trimmedCommand)) {
+                return pattern.handler();
+            }
         }
+        
+        return [{ type: 'addMessage', message: `Unknown command: "${command}". Type "h/help" for available commands.` }];
+    }
+
+    private handleInventorySlot(command: string): CommandDescriptor[] {
+        if (!this.inventoryOpen) {
+            return [{ type: 'addMessage', message: '❌ Inventory is not open. Type "i/inventory" to open it.' }];
+        }
+        
+        const slotIndex = parseInt(command) - 1;
+        return this.selectInventorySlot(slotIndex);
     }
 
     private toggleInventory(): CommandDescriptor[] {
