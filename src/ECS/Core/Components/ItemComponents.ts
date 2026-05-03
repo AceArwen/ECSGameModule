@@ -10,3 +10,9 @@ export type WeaponComponent = {
 export type HealComponent = {
     amount: number;
 };
+
+export type HealthComponent = {
+    health: number;
+    maxHealth: number;
+    onDeath?: () => void; // Optional callback for when health reaches 0
+};

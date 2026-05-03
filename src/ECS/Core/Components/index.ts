@@ -26,5 +26,6 @@ export type {
 export type {
     StackableComponent,
     WeaponComponent,
-    HealComponent
+    HealComponent,
+    HealthComponent
 } from "./ItemComponents";

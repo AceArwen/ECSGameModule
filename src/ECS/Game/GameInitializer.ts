@@ -75,18 +75,11 @@ export class GameInitializer {
         // Initialize all object definitions using the proper method
         this.objectManager.initializeObjectDefinitions();
         
-        // Create player instance
-        const player = this.objectManager.createPlayerInstance();
+        // Create player instance with inventory
+        const player = this.objectManager.createPlayerInstanceWithInventory(this.inventorySystem);
         
-        // Create player inventory
-        this.inventorySystem.createInventory(player, 3); // PLAYER_INVENTORY_SIZE
-        
-        // Create chest instance
-        const chest = this.objectManager.createChestInstance();
-        
-        // Create chest inventory and initialize with random loot
-        this.inventorySystem.createInventory(chest, 4); // CHEST_INVENTORY_SIZE
-        this.inventorySystem.initializeChestInventory(chest);
+        // Create chest instance with inventory
+        const chest = this.objectManager.createChestInstanceWithInventory(this.inventorySystem);
         
         // Log to game console instead of browser console
         this.log('🎮 Game initialized!');

@@ -1,4 +1,4 @@
-import type { ConsummableTagComponent, DescriptionComponent, HasOwnerComponent, HealComponent, InventoryComponent, IsOwnerComponent, ObjectDefinitionComponent, ObjectInstanceComponent, SlotComponent, StackableComponent, UsableTagComponent, WeaponComponent, Entity } from "./Components";
+import type { ConsummableTagComponent, DescriptionComponent, HasOwnerComponent, HealthComponent, HealComponent, InventoryComponent, IsOwnerComponent, ObjectDefinitionComponent, ObjectInstanceComponent, SlotComponent, StackableComponent, UsableTagComponent, WeaponComponent, Entity } from "./Components";
 
 interface ReadonlyComponentStore<T> {
     get(entity: Entity): T | undefined;
@@ -91,6 +91,7 @@ type ComponentMap = {
     isOwner: IsOwnerComponent;
     weapon: WeaponComponent;
     heal: HealComponent;
+    health: HealthComponent;
 };
 
 /**
@@ -122,6 +123,7 @@ export class ComponentRegistry {
     private isOwnerStore = new ComponentStore<IsOwnerComponent>();
     private weaponStore = new ComponentStore<WeaponComponent>();
     private healStore = new ComponentStore<HealComponent>();
+    private healthStore = new ComponentStore<HealthComponent>();
 
     private storeMap = new StoreMap<ComponentMap>({
         definition: this.definitionStore,
@@ -135,7 +137,8 @@ export class ComponentRegistry {
         hasOwner: this.hasOwnerStore,
         isOwner: this.isOwnerStore,
         weapon: this.weaponStore,
-        heal: this.healStore
+        heal: this.healStore,
+        health: this.healthStore
     });
 
     /** Read-only view of all component stores for safe external access */

@@ -1,4 +1,5 @@
 import type { Entity } from "./Components";
+import type { ComponentRegistry } from "./Registry";
 
 /**
  * Manages entity lifecycle and tracks entity states in the ECS system.
@@ -204,5 +205,25 @@ export class EntityManager {
         this.currentEntity = 0;
         this.activeEntities.clear();
         this.definitionEntities.clear();
+    }
+
+    /**
+     * Gets the display name of any entity.
+     * Static utility method that can be used without instance.
+     * 
+     * @param {Entity} entity - The entity to get the name for
+     * @param {ComponentRegistry} registry - Component registry to access description components
+     * 
+     * @returns {string} The entity's display name or fallback
+     * 
+     * @example
+     * ```typescript
+     * const name = EntityManager.getEntityName(itemEntity, registry);
+     * // Returns: "Bandage" or "Unknown Item"
+     * ```
+     */
+    static getEntityName(entity: Entity, registry: ComponentRegistry): string {
+        const description = registry.components.get('description').get(entity);
+        return description?.name || 'Unknown Item';
     }
 }

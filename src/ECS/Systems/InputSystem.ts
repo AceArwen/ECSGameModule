@@ -3,6 +3,7 @@ import type { Entity } from '../Core';
 import type { CommandDescriptor } from '../Commands';
 import { ObjectManager } from '../Data';
 import type { InventorySystem } from './InventorySystem';
+import type { UsableSystem } from './UsableSystem';
 
 /**
  * Input processing system for console commands.
@@ -22,22 +23,19 @@ import type { InventorySystem } from './InventorySystem';
 export class InputSystem {
     private selectedInventory: Entity | null = null;
 
-    /**
-     * Creates input system with required dependencies.
-     * 
-     * @param {ComponentRegistry} registry - Component storage system
-     * @param {ObjectManager} objectManager - Object creation and management
-     * @param {InventorySystem} inventorySystem - Inventory management system
-     * @param {Entity} player - Player entity ID
-     */
     constructor(
         private registry: ComponentRegistry, 
         private objectManager: ObjectManager,
         private inventorySystem: InventorySystem,
+        private usableSystem: UsableSystem,
         private player: number
     ) {
         // No more keyboard listeners - using console commands instead
     }
+
+    // ====================
+    // MAIN COMMAND PROCESSING
+    // ====================
 
     /**
      * Processes text commands from the console.
@@ -46,12 +44,6 @@ export class InputSystem {
      * @param {string} command - The raw text command from player
      * 
      * @returns {CommandDescriptor[]} Array of command descriptors to execute
-     * 
-     * @example
-     * ```typescript
-     * const commands = inputSystem.processCommand("inventory");
-     * // Returns: [{ type: 'addMessage', message: '🎒 INVENTORY:...' }]
-     * ```
      */
     processCommand(command: string): CommandDescriptor[] {
         const trimmedCommand = command.toLowerCase().trim();
@@ -60,6 +52,7 @@ export class InputSystem {
         const patterns = [
             { regex: /^(?:i|inventory)$/, handler: () => this.displayInventoryCommand() },
             { regex: /^i\s+([1-9])$/, handler: (_, match) => this.handleInventorySlotWithPrefix(match[1]) },
+            { regex: /^i\s+([1-9])\s+(?:u|use)$/, handler: (_, match) => this.handleItemUsage(match[1]) },
             { regex: /^(?:c|clear)$/, handler: () => [{ type: 'clearConsole' as const }] },
             { regex: /^(?:help|h)$/, handler: () => [{ type: 'addMessage' as const, message: this.getHelpText() }] },
             { regex: /^(?:status|s)$/, handler: () => [{ type: 'addMessage' as const, message: this.getStatusText() }] }
@@ -76,23 +69,41 @@ export class InputSystem {
         return [{ type: 'addMessage', message: `Unknown command: "${command}". Type "h/help" for available commands.` }];
     }
 
+    // ====================
+    // INVENTORY COMMANDS
+    // ====================
+
     /**
-     * Handles inventory display command ("inventory" or "i").
-     * Selects player inventory and returns command to display it.
+     * Handles inventory display command.
+     * Shows the selected inventory or default to player inventory.
      * 
-     * @returns {CommandDescriptor[]} Command descriptor for displaying inventory
+     * @returns {CommandDescriptor[]} Command descriptors for inventory display
      */
     private displayInventoryCommand(): CommandDescriptor[] {
-        // Always select player inventory when displaying
-        this.selectedInventory = this.inventorySystem.getInventoryByOwner(this.player);
-        return [{ type: 'addMessage' as const, message: this.displayInventory() }];
+        const inventory = this.selectedInventory || this.inventorySystem.getInventoryByOwner(this.player);
+        if (!inventory) {
+            return [{ type: 'addMessage', message: 'No inventory available' }];
+        }
+
+        const slots = this.inventorySystem.getInventorySlots(inventory);
+        const inventoryLines = slots.map((slot, index) => {
+            const slotNumber = index + 1;
+            const hasObject = this.inventorySystem.slotHasObject(slot);
+            const quantity = this.inventorySystem.getSlotQuantity(slot);
+            const objectName = this.inventorySystem.getSlotObjectName(slot);
+            
+            return `${slotNumber}. ${hasObject ? `${objectName} (${quantity})` : 'Empty'}`;
+        });
+
+        const inventoryOwner = this.selectedInventory ? 'Selected' : 'Player';
+        return [{ type: 'addMessage', message: `${inventoryOwner} Inventory:\n${inventoryLines.join('\n')}` }];
     }
 
     /**
-     * Handles inventory slot commands with prefix (e.g., "i 3").
-     * Parses slot number and delegates to selectInventorySlot.
+     * Handles inventory slot selection with prefix.
+     * Selects or deselects inventory slots.
      * 
-     * @param {string} slotNumber - Slot number as string (1-based)
+     * @param {string} slotNumber - The slot number as string
      * 
      * @returns {CommandDescriptor[]} Command descriptors for slot selection
      */
@@ -101,125 +112,135 @@ export class InputSystem {
         return this.selectInventorySlot(slotIndex);
     }
 
-
     /**
-     * Selects a specific inventory for display.
-     * Used for switching between different inventories (e.g., player vs chest).
+     * Handles item usage commands.
+     * Uses items from selected inventory slots.
      * 
-     * @param {Entity} inventoryEntity - Inventory entity to select
+     * @param {string} slotNumber - The slot number as string
      * 
-     * @returns {CommandDescriptor[]} Command descriptor for displaying selected inventory
-     * 
-     * @example
-     * ```typescript
-     * const commands = inputSystem.selectInventory(chestInventory);
-     * // Returns: [{ type: 'addMessage', message: '🎒 CHEST INVENTORY:...' }]
-     * ```
+     * @returns {CommandDescriptor[]} Command descriptors for item usage
      */
-    public selectInventory(inventoryEntity: Entity): CommandDescriptor[] {
-        this.selectedInventory = inventoryEntity;
-        return [{ type: 'addMessage' as const, message: this.displayInventory() }];
-    }
-
-    
-    private displayInventory(): string {
-        if (!this.selectedInventory) {
-            return '❌ No inventory selected';
+    private handleItemUsage(slotNumber: string): CommandDescriptor[] {
+        const slotIndex = parseInt(slotNumber) - 1;
+        const inventory = this.selectedInventory || this.inventorySystem.getInventoryByOwner(this.player);
+        
+        if (!inventory) {
+            return [{ type: 'addMessage', message: 'No inventory available' }];
         }
 
-        const slots = this.inventorySystem.getInventorySlots(this.selectedInventory);
-        
-        // Handle empty inventory
-        if (slots.length === 0) {
-            const message = '❌ The inventory with ID ' + this.selectedInventory + ' does not contain any slots';
-            this.selectedInventory = null;
-            return message;
+        const slots = this.inventorySystem.getInventorySlots(inventory);
+        if (slotIndex < 0 || slotIndex >= slots.length) {
+            return [{ type: 'addMessage', message: `Invalid slot number: ${slotNumber + 1}` }];
         }
 
-        let output = '\n🎒 INVENTORY:\n==================\n';
-        
-        slots.forEach((slotEntity, index) => {
-            const slot = this.registry.components.get('slot').get(slotEntity);
-            if (!slot || !slot.object) {
-                output += `${index + 1}. [Empty]\n`;
-                return;
-            }
+        const slot = slots[slotIndex];
+        if (!this.inventorySystem.slotHasObject(slot)) {
+            return [{ type: 'addMessage', message: `Slot ${slotNumber + 1} is empty` }];
+        }
 
-            // Get the definition entity for proper description and component access
-            const itemDefinition = this.objectManager.getEntityDefinition(slot.object);
-            const description = this.registry.components.get('description').get(itemDefinition);
-            const stackable = this.registry.components.get('stackable').get(itemDefinition);
-            
-            const itemName = description?.name || 'Unknown Item';
-            const count = slot.count > 1 ? ` x${slot.count}` : '';
-            const stackInfo = stackable ? ` (Max: ${stackable.maxStack})` : '';
-            
-            output += `${index + 1}. ${itemName}${count}${stackInfo}\n`;
-        });
-        
-        output += `\nType "i 1"-"i ${slots.length}" to select items\n==================\n`;
-        return output;
+        const slotComponent = this.registry.getComponent("slot", slot);
+        if (!slotComponent || !slotComponent.object) {
+            return [{ type: 'addMessage', message: `Slot ${slotNumber + 1} has no valid item` }];
+        }
+
+        // Use the item
+        const result = this.usableSystem.useEntity(this.player, slotComponent.object, slot);
+        return [{ type: 'addMessage', message: result }];
     }
 
     /**
-     * Handles inventory slot selection commands (e.g., "i 3").
-     * Selects a specific slot and displays item information.
+     * Selects an inventory slot for further operations.
      * 
-     * @param {number} slotIndex - Zero-based slot index (0 for slot 1)
+     * @param {number} slotIndex - The zero-based slot index
      * 
-     * @returns {CommandDescriptor[]} Command descriptors for displaying selection result
-     * 
-     * @example
-     * ```typescript
-     * const result = inputSystem.selectInventorySlot(2);
-     * // Returns: [{ type: 'addMessage', message: '🎯 Selected: Sword x1 (Slot 3)' }]
-     * ```
+     * @returns {CommandDescriptor[]} Command descriptors for slot selection
      */
     private selectInventorySlot(slotIndex: number): CommandDescriptor[] {
-        // Always use player inventory when selecting slots
-        this.selectedInventory = this.inventorySystem.getInventoryByOwner(this.player);
+        const inventory = this.selectedInventory || this.inventorySystem.getInventoryByOwner(this.player);
         
-        const slots = this.inventorySystem.getInventorySlots(this.selectedInventory);
-        if (slotIndex >= slots.length) {
-            return [{ type: 'addMessage' as const, message: `❌ Slot ${slotIndex + 1} does not exist (Inventory has ${slots.length} slots)` }];
+        if (!inventory) {
+            return [{ type: 'addMessage', message: 'No inventory available' }];
         }
 
-        const slotEntity = slots[slotIndex];
-        const hasObject = this.inventorySystem.slotHasObject(slotEntity);
-        
-        if (!hasObject) {
-            return [{ type: 'addMessage' as const, message: `❌ Slot ${slotIndex + 1} is empty` }];
+        const slots = this.inventorySystem.getInventorySlots(inventory);
+        if (slotIndex < 0 || slotIndex >= slots.length) {
+            return [{ type: 'addMessage', message: `Invalid slot number: ${slotIndex + 1}` }];
         }
 
-        const itemName = this.inventorySystem.getSlotObjectName(slotEntity);
-        const quantity = this.inventorySystem.getSlotQuantity(slotEntity);
+        const slot = slots[slotIndex];
+        const hasObject = this.inventorySystem.slotHasObject(slot);
+        const quantity = this.inventorySystem.getSlotQuantity(slot);
+        const objectName = this.inventorySystem.getSlotObjectName(slot);
         
-        return [{ type: 'addMessage' as const, message: `🎯 Selected: ${itemName} x${quantity} (Slot ${slotIndex + 1})` }];
+        const slotInfo = hasObject ? `${objectName} (${quantity})` : 'Empty';
+        return [{ type: 'addMessage', message: `Selected slot ${slotIndex + 1}: ${slotInfo}` }];
     }
+
+    // ====================
+    // HELP & STATUS COMMANDS
+    // ====================
 
     /**
      * Gets help text for available commands.
      * 
-     * @returns {string} Formatted help text with all available commands
+     * @returns {string} Formatted help text
      */
     private getHelpText(): string {
-        return `📖 Available Commands:
-• inventory/i - Display inventory content
-• i [1-9] - Select inventory slot (e.g., "i 3")
-• clear/c - Clear console messages
-• status/s - Show player status
-• help/h - Show this help message`;
+        return `Available commands:
+  i/inventory - Show inventory
+  i [number] - Select/show inventory slot
+  i [number] u/use - Use item from slot
+  c/clear - Clear console
+  h/help - Show this help
+  s/status - Show player status`;
     }
 
     /**
      * Gets player status information.
      * 
-     * @returns {string} Formatted status text with player information
+     * @returns {string} Formatted status text
      */
     private getStatusText(): string {
-        const description = this.registry.components.get('description').get(this.player);
-        const playerName = description?.name || 'Unknown Player';
-        return `👤 Player: ${playerName} (ID: ${this.player})`;
+        const health = this.registry.getComponent("health", this.player);
+        const healthText = health ? `Health: ${health.health}/${health.maxHealth}` : 'Health: N/A';
+        
+        const inventory = this.inventorySystem.getInventoryByOwner(this.player);
+        const slots = inventory ? this.inventorySystem.getInventorySlots(inventory) : [];
+        const itemCount = slots.filter(slot => this.inventorySystem.slotHasObject(slot)).length;
+        
+        return `Player Status:
+  ${healthText}
+  Inventory: ${itemCount}/${slots.length} slots used`;
     }
 
+    // ====================
+    // INVENTORY MANAGEMENT
+    // ====================
+
+    /**
+     * Sets the currently selected inventory.
+     * Used for targeting specific inventories (e.g., chests).
+     * 
+     * @param {Entity} inventory - The inventory entity to select
+     */
+    setSelectedInventory(inventory: Entity): void {
+        this.selectedInventory = inventory;
+    }
+
+    /**
+     * Gets the currently selected inventory.
+     * 
+     * @returns {Entity | null} The selected inventory or null
+     */
+    getSelectedInventory(): Entity | null {
+        return this.selectedInventory;
+    }
+
+    /**
+     * Clears the selected inventory.
+     * Resets to player inventory context.
+     */
+    clearSelectedInventory(): void {
+        this.selectedInventory = null;
+    }
 }
