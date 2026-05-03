@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ComponentRegistry } from '../ECS/Registry';
-import { GameInitializer } from '../ECS/GameInitializer';
-import { InputSystem } from '../ECS/InputSystem';
+import { ComponentRegistry, EntityManager } from '../ECS/Core';
+import { GameInitializer } from '../ECS/Game';
+import { InputSystem, InventorySystem } from '../ECS/Systems';
+import { ObjectManager } from '../ECS/Data';
 import { useGameConsole } from './GameConsoleContext';
-import type { Entity } from '../ECS/Components';
+import type { Entity } from '../ECS/Core';
 
 interface ECSContextType {
     registry: ComponentRegistry;
@@ -36,9 +37,12 @@ export const ECSProvider: React.FC<ECSProviderProps> = ({ children }) => {
         if (!registryRef.current) {
             clearMessages();
             registryRef.current = new ComponentRegistry();
-            const initializer = new GameInitializer(registryRef.current, { addMessage: addMessageRef.current });
+            const entityManager = new EntityManager();
+            const objectManager = new ObjectManager(registryRef.current, entityManager);
+            const inventorySystem = new InventorySystem(registryRef.current, entityManager);
+            const initializer = new GameInitializer(entityManager, objectManager, inventorySystem, { addMessage: addMessageRef.current });
             playerRef.current = initializer.initializeGame();
-            inputSystemRef.current = new InputSystem(registryRef.current, playerRef.current);
+            inputSystemRef.current = new InputSystem(registryRef.current, objectManager, inventorySystem, playerRef.current);
             setIsInitialized(true);
         }
     }, []); // Empty dependency array - only run once
