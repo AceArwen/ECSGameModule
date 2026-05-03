@@ -217,17 +217,26 @@ This document provides comprehensive context for understanding and working with 
 ## Future Extension Points
 
 ### Planned Features
-- Combat system
-- Quest system
+- Enhanced inventory interaction (item use, consumption, equipment)
+- Chest inventory interaction and management
+- Event-driven ECS system with update loop
+- Player movement and spatial representation
+- Physics mechanics (walls, collisions, boundaries)
+- Environment interaction system (chests, torches, interactive objects)
+- Multi-entity interactions (entity-to-entity communication, trading)
+  - Combat system and battle mechanics
+- Quest system framework
 - Save/load functionality
-- Multi-entity interactions
 - Advanced item properties
+- Visual editor for object definitions
+- Performance monitoring and optimization
+- Player entity creation interface (in-game component-based crafting)
 
 ### Architectural Improvements
 - Event system for entity communication
 - Scripting system for game logic
-- Network support for multiplayer
-- Visual editor for object definitions
+- Spatial query optimization
+- Component pooling for performance
 
 ## Code Conventions
 

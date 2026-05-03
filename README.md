@@ -9,6 +9,24 @@ A React + TypeScript game application built with a custom Entity Component Syste
 - **Component Registry**: Type-safe component storage and retrieval system
 - **Object Definitions**: Template-based object instantiation system
 - **Inventory Management**: Built-in inventory and slot management components
+- **Environment Interaction**
+   - Interactive objects (chests, doors, torches)
+   - Proximity-based interaction system
+   - Environmental state management
+   - Multi-entity interaction mechanics
+     - Entity-to-entity communication and trading
+     - Combat system and battle mechanics
+- **Save/Load System**
+   - Game state serialization and persistence
+   - Multiple save slot management
+   - Version compatibility handling
+   - Progress recovery and backup systems
+- **Player Entity Creation Interface**
+   - In-game entity definition creation system
+   - Component-based crafting interface
+   - Visual component selection and configuration
+   - Free-form crafting and item creation
+   - Player-created entity templates and instances
 - **Command Pattern**: Extensible command system for game actions
 - **System-based Processing**: Modular systems for different game mechanics
 
@@ -169,6 +187,21 @@ The ECS architecture makes it easy to extend the game:
 3. **Define new objects**: Add to `ObjectDefinitions.ts` and `ObjectManager.ts`
 4. **Add new commands**: Implement in `src/ECS/Commands/`
 5. **Extend UI**: Modify React components in `src/Routes/`
+
+### Future Vision: Player Entity Creation
+A planned future feature will enable players to create their own entities directly in the game:
+
+- **In-Game Entity Definition System**: Visual interface for creating new entity templates
+- **Component-Based Crafting**: Select and combine existing components to create new items
+- **Free-Form Creation**: Allow players to experiment with component combinations
+- **Template Management**: Save, load, and share player-created entity definitions
+- **Dynamic Instantiation**: Create instances of player-defined objects during gameplay
+
+This system will enable:
+- **Free Crafting Mechanics**: Combine components to create unique items
+- **Player-Driven Content**: Community-created objects and templates
+- **Emergent Gameplay**: Unexpected combinations and interactions
+- **Modding Without Code**: In-game content creation tools
 
 ### Performance Considerations
 - Component registry uses Maps for O(1) component access

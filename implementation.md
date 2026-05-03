@@ -198,19 +198,23 @@
 - Comprehensive documentation
 
 ### 🔄 In Progress
-- Advanced item interactions (use, consume, equip)
-- Combat system integration
-- Quest system framework
-- Save/load functionality
+- Enhanced inventory interaction (item use, consumption, equipment)
+- Chest inventory interaction and management
+- Event-driven ECS system with update loop
+- Player movement and spatial representation
 
 ### 📋 Planned Features
-- Multi-entity interactions (entity-to-entity communication, trading, combat interactions)
-- Player movement and spatial representation
 - Physics mechanics (walls, collisions, boundaries)
 - Environment interaction system (chests, torches, interactive objects)
+- Multi-entity interactions (entity-to-entity communication, trading)
+  - Combat system and battle mechanics
+- Quest system framework
+- Save/load functionality
+- Advanced item properties and mechanics
 - Visual editor for object definitions
 - Scripting system for game logic
 - Performance monitoring and optimization
+- Player entity creation interface (in-game component-based crafting)
 
 ## Development Challenges & Solutions
 
@@ -299,61 +303,87 @@ Adding player movement requires transitioning from the current console-only inte
 ## Future Development Roadmap
 
 ### Short Term (Next 1-2 months)
-1. **Player Movement System**
+1. **Enhanced Inventory System**
+   - Item use and consumption mechanics
+   - Equipment system for weapons and armor
+   - Item durability and condition system
+   - Enhanced inventory interaction commands
+
+2. **Chest Interaction System**
+   - Chest opening and closing mechanics
+   - Chest inventory management
+   - Loot distribution and randomization
+   - Chest state persistence
+
+3. **Event-Driven ECS Architecture**
+   - Event system for entity communication
+   - Game loop and update system implementation
+   - System coordination and processing order
+   - Component lifecycle management
+   - Event-driven command processing
+
+4. **Player Movement System**
    - Spatial representation components (Position, Grid, Map)
    - Movement commands (north, south, east, west, look)
    - Visual map display in console
    - Coordinate system and boundaries
    - Movement validation and collision detection
 
-2. **Physics & Environment Interaction**
+5. **Physics & Environment Interaction**
    - Wall and obstacle components
    - Collision detection system
    - Interactive object components (doors, chests, torches)
    - Proximity-based interaction mechanics
    - Environmental state management (lit/unlit torches, locked/unlocked doors)
 
-3. **Enhanced Item System**
-   - Item usage and consumption mechanics
-   - Equipment system (weapons, armor)
-   - Item durability and repair
-   - Spatial item placement and pickup
-
-4. **Combat Framework**
-   - Turn-based combat system
-   - Health and damage calculations
-   - Combat state management
-   - Position-based combat mechanics
-
-5. **Quest System**
-   - Quest definition framework
-   - Progress tracking
-   - Reward distribution
-   - Location-based quest triggers
-
 ### Medium Term (3-6 months)
-1. **Advanced AI**
-   - NPC behavior systems
-   - Pathfinding and movement
-   - Decision-making algorithms
+1. **Quest System**
+   - Quest definition and tracking framework
+   - Objective-based progression system
+   - Location-based quest triggers
+   - Quest chain and dependency management
 
 2. **Save/Load System**
-   - Game state serialization
-   - Multiple save slots
+   - Game state serialization and persistence
+   - Multiple save slot management
    - Version compatibility handling
+   - Progress recovery and backup systems
+   - Save file optimization and compression
 
-3. **Performance Optimization**
+3. **Advanced Item Mechanics**
+   - Complex item properties and behaviors
+   - Item crafting and combination systems
+   - Magical item effects and enchantments
+   - Item set bonuses and synergies
+
+4. **Multi-Entity Interaction Framework**
+   - Entity-to-entity communication protocols
+   - Trading and bartering systems
+   - Combat system and battle mechanics
+   - Relationship and reputation systems
+   - Group and party mechanics
+
+5. **Performance Optimization**
    - Entity pooling systems
    - Memory usage optimization
+   - Spatial query optimization
    - Rendering performance improvements
 
 ### Long Term (6+ months)
-1. **Multiplayer Support**
+1. **Player Entity Creation Interface**
+   - In-game entity definition system
+   - Component-based crafting interface
+   - Visual component selection and configuration
+   - Template management and sharing
+   - Dynamic instantiation system
+   - Player-driven content creation
+
+2. **Multiplayer Support**
    - Network architecture
    - Synchronization systems
    - Server-side validation
 
-2. **Modding Support**
+3. **Modding Support**
    - Plugin architecture
    - Scripting interface
    - Content creation tools
