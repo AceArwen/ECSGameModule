@@ -1,6 +1,6 @@
 # ECS Game Module
 
-A React + TypeScript game application built with a custom Entity Component System (ECS) architecture. This modular game framework provides a foundation for building text-based games with flexible object management.
+A React + TypeScript game application built with a custom Entity Component System (ECS) architecture. This modular game framework provides a foundation for building text-based games with flexible object management and extensible systems.
 
 ## Features
 
@@ -9,18 +9,22 @@ A React + TypeScript game application built with a custom Entity Component Syste
 - **Component Registry**: Type-safe component storage and retrieval system
 - **Object Definitions**: Template-based object instantiation system
 - **Inventory Management**: Built-in inventory and slot management components
+- **Command Pattern**: Extensible command system for game actions
+- **System-based Processing**: Modular systems for different game mechanics
 
 ### Game Interface
 - **Console-style Game Screen**: Interactive text-based gameplay interface
 - **Persistent Console Messages**: Messages saved to localStorage across sessions
 - **Customizable Text Settings**: Adjustable text size, weight, and colors
-- **Keyboard Shortcuts**: Quick commands for enhanced gameplay
+- **Command History**: Navigate through previous commands with arrow keys
+- **Real-time Command Processing**: Immediate feedback and response system
 
 ### Application Structure
 - **Menu System**: Main navigation hub
-- **Game Screen**: Primary gameplay interface
+- **Game Screen**: Primary gameplay interface with console
 - **Settings Panel**: Customizable user preferences
 - **Context-based State Management**: React Context for global settings
+- **Modular Routing**: Clean separation between game screens
 
 ## Tech Stack
 
@@ -58,32 +62,96 @@ npm run dev
 
 ## ECS System Overview
 
-### Components
-The ECS system includes several core component types:
+### Core Architecture
+The ECS system is built around three main concepts:
 
-- **ObjectDefinitionComponent**: Links entities to object type definitions
-- **ObjectInstanceComponent**: Connects instances to their base definitions
-- **DescriptionComponent**: Stores name and description data
-- **InventoryComponent**: Manages entity inventories with slots
-- **StackableComponent**: Handles item stacking mechanics
-- **UsableTagComponent** & **ConsummableTagComponent**: Item behavior tags
+#### Entities
+- Unique identifiers for game objects
+- Managed by `EntityManager`
+- Can be marked as definitions (templates) or instances
+- Support lifecycle management (create/destroy)
 
-### Entity Management
-- Create entities using `createEntity()`
-- Define object templates with `markAsDefinition()`
-- Instantiate objects from definitions with `createObjectInstance()`
-- Clean entity removal with automatic cleanup of linked entities
+#### Components
+- Data containers attached to entities
+- Type-safe storage through `ComponentRegistry`
+- Organized into logical groups:
+  - **Base Components**: ObjectDefinition, ObjectInstance, Description
+  - **Inventory Components**: Inventory, Slot, HasOwner, IsOwner
+  - **Item Components**: Stackable, Weapon, Heal
+  - **Tag Components**: Usable, Consummable
+
+#### Systems
+- Process entities with specific component combinations
+- Currently implemented systems:
+  - **InventorySystem**: Manages inventories, slots, and item operations
+  - **InputSystem**: Processes console commands and user input
+
+### Object Management
+- **ObjectManager**: Handles object definitions and instance creation
+- **Template System**: Define object types once, instantiate many times
+- **Built-in Object Types**: Character, Chest, Sword, Bandage, Key
+- **Extensible Design**: Easy to add new object types and behaviors
+
+### Command System
+- **Command Pattern**: Extensible command architecture
+- **Command Factory**: Creates commands from descriptors
+- **UI Commands**: ClearConsole, AddMessage
+- **Game Commands**: Extensible for game-specific actions
+
+### Entity Management Workflow
+1. Create object definitions with components
+2. Mark entities as definitions (immutable templates)
+3. Create instances from definitions
+4. Systems process entities based on their components
+5. Commands execute game actions and UI updates
 
 ## Game Controls
 
-### Keyboard Shortcuts
+### Console Commands
+- **inventory** or **i**: Display player inventory content
+- **i [1-9]**: Select and interact with inventory slot (e.g., "i 3")
+- **clear** or **c**: Clear console messages
+- **status** or **s**: Show player status information
+- **help** or **h**: Display available commands
+
+### Keyboard Navigation
 - **Enter**: Submit console command
-- **G**: Trigger Game Overlord response
+- **Arrow Up/Down**: Navigate through command history
+- **Arrow Keys**: Auto-complete previous commands
 
 ### Navigation
 - Use the menu buttons to navigate between screens
 - Access settings to customize text appearance
-- Console messages persist across sessions
+- Console messages persist across sessions via localStorage
+
+## Project Structure
+
+```
+src/
+├── Context/                 # React Context providers
+│   ├── ECSContext.tsx      # Main ECS system provider
+│   ├── GameConsoleContext.tsx # Console message management
+│   └── SettingsContext.tsx # User preferences
+├── ECS/                    # Core ECS implementation
+│   ├── Core/              # ECS infrastructure
+│   │   ├── Components/    # Component type definitions
+│   │   ├── Entity.ts      # Entity lifecycle management
+│   │   ├── Registry.ts    # Component storage system
+│   │   └── System.ts      # System base classes
+│   ├── Data/              # Data management
+│   │   ├── ObjectManager.ts # Object creation/management
+│   │   └── ObjectDefinitions.ts # Game constants/types
+│   ├── Systems/           # Game systems
+│   │   ├── InventorySystem.ts # Inventory management
+│   │   └── InputSystem.ts # Command processing
+│   ├── Commands/          # Command pattern implementation
+│   └── Game/              # Game initialization
+├── Routes/                # Application screens
+│   ├── GameScreen.tsx    # Main game interface
+│   ├── Menu.tsx          # Main menu
+│   └── Settings.tsx     # Settings panel
+└── assets/               # Static assets
+```
 
 ## Development Notes
 
@@ -92,3 +160,18 @@ The React Compiler is not enabled due to performance considerations. To enable i
 
 ### ESLint Configuration
 For production development, consider enabling type-aware lint rules by updating the ESLint configuration to include stricter TypeScript rules.
+
+### Extending the Game
+The ECS architecture makes it easy to extend the game:
+
+1. **Add new components**: Define in `src/ECS/Core/Components/`
+2. **Create new systems**: Implement in `src/ECS/Systems/`
+3. **Define new objects**: Add to `ObjectDefinitions.ts` and `ObjectManager.ts`
+4. **Add new commands**: Implement in `src/ECS/Commands/`
+5. **Extend UI**: Modify React components in `src/Routes/`
+
+### Performance Considerations
+- Component registry uses Maps for O(1) component access
+- Entity IDs are sequential integers for efficient storage
+- Systems process only entities with required components
+- Console messages are stored in localStorage with size limits
