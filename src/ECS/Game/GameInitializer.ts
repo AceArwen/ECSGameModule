@@ -63,12 +63,12 @@ export class GameInitializer {
      * Initializes the game world.
      * Sets up object definitions, creates player and world entities with inventories.
      * 
-     * @returns {Entity} The created player entity
+     * @returns {{player: Entity, chest: Entity}} The created player and chest entities
      * 
      * @example
      * ```typescript
      * const gameInitializer = new GameInitializer(entityManager, objectManager, inventorySystem, gameConsole);
-     * const player = gameInitializer.initializeGame();
+     * const {player, chest} = gameInitializer.initializeGame();
      * ```
      */
     initializeGame() {
@@ -87,6 +87,6 @@ export class GameInitializer {
         this.log(`Chest ID: ${chest} with inventory created`);
         this.log('Press "I" to open inventory');
         
-        return player;
+        return { player, chest };
     }
 }

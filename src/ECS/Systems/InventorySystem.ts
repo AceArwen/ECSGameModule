@@ -204,26 +204,34 @@ export class InventorySystem implements EntityProcessingSystem {
      * @param {Entity} object - The object entity to add
      * @param {number} count - Quantity to add
      * 
-     * @returns {boolean} True if all items were added, false if no space available
+     * @returns {number} Remaining quantity (0 if all added, >0 if leftovers)
      */
-    addObjectToInventory(inventory: Entity, object: Entity, count: number): boolean {
+    addObjectToInventory(inventory: Entity, object: Entity, count: number): number {
         const slots = this.getInventorySlots(inventory);
         
         // Try to stack with existing items first
         for (const slotEntity of slots) {
             if (this.canStackInSlot(slotEntity, object)) {
-                return this.addToSlot(slotEntity, object, count);
+                const leftOver = this.addObjectToSlot(slotEntity, object, count);
+                if (leftOver === 0) {
+                    return 0;
+                }
+                count = leftOver;
             }
         }
 
         // Try to find empty slot
         for (const slotEntity of slots) {
             if (!this.slotHasObject(slotEntity)) {
-                return this.addToSlot(slotEntity, object, count);
+                const leftOver = this.addObjectToSlot(slotEntity, object, count);
+                if (leftOver === 0) {
+                    return 0;
+                }
+                count = leftOver;
             }
         }
 
-        return false; // No space available
+        return count; // Return remaining quantity
     }
 
     /**
@@ -255,38 +263,47 @@ export class InventorySystem implements EntityProcessingSystem {
     }
 
     /**
-     * Adds an object to a specific slot with stackable handling.
+     * Adds an object to a specific slot.
+     * Handles both empty slots and stacking with existing items.
      * 
      * @param {Entity} slot - The slot entity to add to
      * @param {Entity} object - The object entity to add
      * @param {number} count - Quantity to add
      * 
-     * @returns {boolean} True if all items were added, false if not all could be added
+     * @returns {number} Remaining quantity (0 if all added, >0 if leftovers)
      */
-    private addToSlot(slot: Entity, object: Entity, count: number): boolean {
+    public addObjectToSlot(slot: Entity, object: Entity, count: number): number {
+        if (count <= 0) return count;
+
         const slotComponent = this.registry.getComponent("slot", slot);
-        if (!slotComponent) return false;
+        if (!slotComponent) return count;
 
         const itemDefinition = this.getEntityDefinition(object);
-        const stackable = this.registry.getComponent("stackable", itemDefinition);
 
-        if (stackable) {
-            // Handle stackable items
-            const maxAddable = stackable.maxStack - slotComponent.count;
-            const actualAdd = Math.min(count, maxAddable);
-            
-            slotComponent.count += actualAdd;
+        if (!slotComponent.object) {
+            // Empty slot - place object here
             slotComponent.object = itemDefinition;
-            
-            return actualAdd === count; // Return false if not all items could be added
-        } else {
-            // Handle non-stackable items
-            if (count === 1 && !this.slotHasObject(slot)) {
-                slotComponent.object = itemDefinition;
+            const stackable = this.registry.getComponent("stackable", itemDefinition);
+            if (stackable) {
+                slotComponent.count = Math.min(count, stackable.maxStack);
+                return count - slotComponent.count;
+            } else {
                 slotComponent.count = 1;
-                return true;
+                return count - 1;
             }
-            return false;
+        } else {
+            // Slot has object - check if same type and stackable
+            const currentObjectDef = this.getEntityDefinition(slotComponent.object);
+            const newObjectDef = itemDefinition;
+            const stackable = this.registry.getComponent("stackable", slotComponent.object);
+
+            if (currentObjectDef !== newObjectDef || !stackable) {
+                return count; // Can't stack different items or non-stackable
+            }
+
+            const totalObjects = slotComponent.count + count;
+            slotComponent.count = Math.min(totalObjects, stackable.maxStack);
+            return totalObjects - slotComponent.count;
         }
     }
 
@@ -368,10 +385,10 @@ export class InventorySystem implements EntityProcessingSystem {
             fromSlot.count = 0;
         } else {
             // Both slots have objects, try to add to target slot first
-            const wasAdded = this.addToSlot(toSlotEntity, fromSlot.object, fromSlot.count);
+            const leftOver = this.addObjectToSlot(toSlotEntity, fromSlot.object, fromSlot.count);
 
-            // If nothing was added, exchange the two slots
-            if (!wasAdded) {
+            // If nothing was added (leftOver === fromSlot.count), exchange the two slots
+            if (leftOver === fromSlot.count) {
                 const tempObject = toSlot.object;
                 const tempCount = toSlot.count;
                 toSlot.object = fromSlot.object;
@@ -379,8 +396,9 @@ export class InventorySystem implements EntityProcessingSystem {
                 fromSlot.object = tempObject;
                 fromSlot.count = tempCount;
             } else {
-                // Some objects were added, remove all from source slot
-                this.removeQuantityFromSlot(fromSlotEntity, fromSlot.count, false);
+                // Some objects were added, remove them from source slot
+                const amountAdded = fromSlot.count - leftOver;
+                this.removeQuantityFromSlot(fromSlotEntity, amountAdded);
             }
         }
     }
@@ -397,12 +415,9 @@ export class InventorySystem implements EntityProcessingSystem {
         
         if (!slot || !inventory || !slot.object) return;
 
-        const wasAdded = this.addObjectToInventory(inventoryEntity, slot.object, slot.count);
-        if (wasAdded) {
-            // All items were added, clear the source slot
-            this.removeQuantityFromSlot(slotEntity, slot.count, false);
-        }
-        // If nothing was added, keep the source slot as is
+        const leftOver = this.addObjectToInventory(inventoryEntity, slot.object, slot.count);
+        if (leftOver === slot.count) return; // Nothing was moved
+        this.removeQuantityFromSlot(slotEntity, slot.count - leftOver);
     }
 
     // ====================

@@ -188,7 +188,7 @@ export class ObjectManager {
         
         // Add Health component to player
         this.registry.addComponent("health", playerEntity, {
-            health: 90,
+            health: 85,
             maxHealth: 100,
             onDeath: () => {
                 console.log("💀 Player has died!");
@@ -260,13 +260,13 @@ export class ObjectManager {
         const bandageDefinition = this.getObjectDefinition(ObjectId.BANDAGE);
         if (bandageDefinition) {
             // Add 2 bandages directly using the definition
-            inventorySystem.addObjectToInventory(inventory, bandageDefinition, 2);
+            inventorySystem.addObjectToInventory(inventory, bandageDefinition, 3);
         }
     }
 
     /**
-     * Initializes a chest inventory with random loot.
-     * Creates inventory if it doesn't exist and fills with random items.
+     * Initializes a chest inventory with specific items.
+     * Creates inventory if it doesn't exist and fills with predefined items.
      * 
      * @param {Entity} chest - The chest entity
      * @param {InventorySystem} inventorySystem - The inventory system to use
@@ -278,24 +278,40 @@ export class ObjectManager {
             return;
         }
 
+        // Check if already initialized
         const slots = inventorySystem.getInventorySlots(inventory);
-        const usedItemTypes = new Set<ObjectId>();
-
-        // Generate items for each slot
-        for (let i = 0; i < slots.length; i++) {
-            if (Math.random() < CHEST_SLOT_FILL_CHANCE) {
-                const availableItems = POSSIBLE_CHEST_ITEMS.filter(item => !usedItemTypes.has(item.type));
-                
-                if (availableItems.length === 0) break;
-
-                const selectedItem = availableItems[Math.floor(Math.random() * availableItems.length)];
-                usedItemTypes.add(selectedItem.type);
-
-                // This would create actual item instances using ObjectManager
-                // For now, this is a placeholder
-                const _quantity = selectedItem.minCount + Math.floor(Math.random() * (selectedItem.maxCount - selectedItem.minCount + 1));
-                // inventorySystem.addObjectToInventory(inventory, itemEntity, quantity);
-            }
+        const existingItems = slots.filter(slot => inventorySystem.slotHasObject(slot));
+        if (existingItems.length > 0) return; // Already initialized
+        
+        const bandageDefinition = this.getObjectDefinition(ObjectId.BANDAGE);
+        const keyDefinition = this.getObjectDefinition(ObjectId.KEY);
+        const swordDefinition = this.getObjectDefinition(ObjectId.SWORD);
+        
+        // Check if we have enough slots for all items
+        if (slots.length < 4) {
+            console.log(`❌ Cannot initialize chest inventory: only ${slots.length} slots available, need 4`);
+            return;
+        }
+        
+        // Slot 0: 5 bandages
+        // Slot 1: 1 key
+        // Slot 2: 5 bandages  
+        // Slot 3: 1 sword
+        
+        // Add bandages to slots 0 and 2
+        if (bandageDefinition) {
+            inventorySystem.addObjectToSlot(slots[0], bandageDefinition, 5);
+            inventorySystem.addObjectToSlot(slots[2], bandageDefinition, 5);
+        }
+        
+        // Add key to slot 1
+        if (keyDefinition) {
+            inventorySystem.addObjectToSlot(slots[1], keyDefinition, 1);
+        }
+        
+        // Add sword to slot 3
+        if (swordDefinition) {
+            inventorySystem.addObjectToSlot(slots[3], swordDefinition, 1);
         }
     }
 }

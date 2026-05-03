@@ -10,6 +10,7 @@ import type { Entity } from '../ECS/Core';
 interface ECSContextType {
     registry: ComponentRegistry;
     player: Entity;
+    chest: Entity;
     inputSystem: InputSystem;
 }
 
@@ -24,6 +25,7 @@ export const ECSProvider: React.FC<ECSProviderProps> = ({ children }) => {
     const [isInitialized, setIsInitialized] = useState(false);
     const registryRef = useRef<ComponentRegistry | null>(null);
     const playerRef = useRef<Entity | null>(null);
+    const chestRef = useRef<Entity | null>(null);
     const inputSystemRef = useRef<InputSystem | null>(null);
     const addMessageRef = useRef(addMessage);
 
@@ -42,21 +44,24 @@ export const ECSProvider: React.FC<ECSProviderProps> = ({ children }) => {
             const inventorySystem = new InventorySystem(registryRef.current, entityManager);
             const usableSystem = new UsableSystem(registryRef.current, inventorySystem);
             const initializer = new GameInitializer(entityManager, objectManager, inventorySystem, { addMessage: addMessageRef.current });
-            playerRef.current = initializer.initializeGame();
-            inputSystemRef.current = new InputSystem(registryRef.current, objectManager, inventorySystem, usableSystem, playerRef.current);
+            const { player, chest } = initializer.initializeGame();
+            playerRef.current = player;
+            chestRef.current = chest;
+            inputSystemRef.current = new InputSystem(registryRef.current, inventorySystem, usableSystem, playerRef.current, chestRef.current);
             setIsInitialized(true);
         }
     }, []); // Empty dependency array - only run once
 
     // Always compute context value, but handle null case gracefully
     const contextValue = React.useMemo(() => {
-        if (!registryRef.current || !playerRef.current || !inputSystemRef.current) {
+        if (!registryRef.current || !playerRef.current || !chestRef.current || !inputSystemRef.current) {
             return null;
         }
         
         return {
             registry: registryRef.current,
             player: playerRef.current,
+            chest: chestRef.current,
             inputSystem: inputSystemRef.current
         };
     }, [isInitialized]); // Depend on initialization state
