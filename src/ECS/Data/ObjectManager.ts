@@ -188,7 +188,7 @@ export class ObjectManager {
         
         // Add Health component to player
         this.registry.addComponent("health", playerEntity, {
-            health: 100,
+            health: 90,
             maxHealth: 100,
             onDeath: () => {
                 console.log("💀 Player has died!");
@@ -256,8 +256,12 @@ export class ObjectManager {
         const existingItems = slots.filter(slot => inventorySystem.slotHasObject(slot));
         if (existingItems.length > 0) return; // Already initialized
 
-        // Add starting items (this would create actual item instances)
-        // For now, this is a placeholder - the actual item creation should be handled elsewhere
+        // Add starting items - 2 bandages
+        const bandageDefinition = this.getObjectDefinition(ObjectId.BANDAGE);
+        if (bandageDefinition) {
+            // Add 2 bandages directly using the definition
+            inventorySystem.addObjectToInventory(inventory, bandageDefinition, 2);
+        }
     }
 
     /**

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import type { ReactNode } from 'react';
 import { ComponentRegistry, EntityManager } from '../ECS/Core';
 import { GameInitializer } from '../ECS/Game';
-import { InputSystem, InventorySystem } from '../ECS/Systems';
+import { InputSystem, InventorySystem, UsableSystem } from '../ECS/Systems';
 import { ObjectManager } from '../ECS/Data';
 import { useGameConsole } from './GameConsoleContext';
 import type { Entity } from '../ECS/Core';
@@ -40,9 +40,10 @@ export const ECSProvider: React.FC<ECSProviderProps> = ({ children }) => {
             const entityManager = new EntityManager();
             const objectManager = new ObjectManager(registryRef.current, entityManager);
             const inventorySystem = new InventorySystem(registryRef.current, entityManager);
+            const usableSystem = new UsableSystem(registryRef.current, inventorySystem);
             const initializer = new GameInitializer(entityManager, objectManager, inventorySystem, { addMessage: addMessageRef.current });
             playerRef.current = initializer.initializeGame();
-            inputSystemRef.current = new InputSystem(registryRef.current, objectManager, inventorySystem, playerRef.current);
+            inputSystemRef.current = new InputSystem(registryRef.current, objectManager, inventorySystem, usableSystem, playerRef.current);
             setIsInitialized(true);
         }
     }, []); // Empty dependency array - only run once

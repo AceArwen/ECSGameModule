@@ -311,7 +311,7 @@ export class InventorySystem implements EntityProcessingSystem {
 
         if (slotComponent.count <= 0) {
             if (!keepEntityRef) {
-                slotComponent.object = undefined;
+                slotComponent.object = null;
             }
             slotComponent.count = 0;
         }
@@ -364,7 +364,7 @@ export class InventorySystem implements EntityProcessingSystem {
             // Target slot is empty, move the object
             toSlot.object = fromSlot.object;
             toSlot.count = fromSlot.count;
-            fromSlot.object = undefined;
+            fromSlot.object = null;
             fromSlot.count = 0;
         } else {
             // Both slots have objects, try to add to target slot first
