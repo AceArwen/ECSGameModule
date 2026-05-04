@@ -38,7 +38,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * Initializes the inventory system.
      * Called during system setup.
      */
-    initialize(): void {
+    initialize() {
         // Initialize any inventory-related setup
     }
 
@@ -46,7 +46,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * Cleans up inventory system resources.
      * Called during system shutdown.
      */
-    cleanup(): void {
+    cleanup() {
         // Clean up inventory resources
     }
 
@@ -55,7 +55,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {EntityFilter} Filter for entities with inventory components
      */
-    getEntityFilter(): EntityFilter {
+    getEntityFilter() {
         return EntityFilters.withComponents(new Map([
             ["inventory", this.registry.components.get("inventory")]
         ]));
@@ -67,7 +67,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * @param {Entity} _entity - Entity being processed
      * @param {number} _deltaTime - Time since last frame
      */
-    processEntity(_entity: Entity, _deltaTime: number): void {
+    processEntity(_entity: Entity, _deltaTime: number) {
         // Process inventory entities if needed (e.g., auto-sort, cleanup)
     }
 
@@ -83,7 +83,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {Entity} Created inventory entity
      */
-    createInventory(owner: Entity, size: number): Entity {
+    createInventory(owner: Entity, size: number) {
         const inventoryEntity = this.entityManager.createEntity();
         const slots: Entity[] = [];
 
@@ -121,7 +121,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {Entity | null} Inventory entity or null if not found
      */
-    getInventoryByOwner(owner: Entity): Entity | null {
+    getInventoryByOwner(owner: Entity) {
         const isOwnerComponent = this.registry.getComponent("isOwner", owner);
         return isOwnerComponent ? isOwnerComponent.ownedEntity : null;
     }
@@ -133,7 +133,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {Entity[]} Array of slot entities
      */
-    getInventorySlots(inventory: Entity): Entity[] {
+    getInventorySlots(inventory: Entity) {
         const inventoryComponent = this.registry.getComponent("inventory", inventory);
         return inventoryComponent ? inventoryComponent.slots : [];
     }
@@ -149,7 +149,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {boolean} True if slot has an object, false otherwise
      */
-    slotHasObject(slot: Entity): boolean {
+    slotHasObject(slot: Entity) {
         const slotComponent = this.registry.getComponent("slot", slot);
         return slotComponent ? slotComponent.object !== null : false;
     }
@@ -161,7 +161,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {number} Quantity of items in the slot
      */
-    getSlotQuantity(slot: Entity): number {
+    getSlotQuantity(slot: Entity) {
         const slotComponent = this.registry.getComponent("slot", slot);
         return slotComponent ? slotComponent.count : 0;
     }
@@ -173,7 +173,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {string} The object's display name or "Empty"
      */
-    getSlotObjectName(slot: Entity): string {
+    getSlotObjectName(slot: Entity) {
         const slotComponent = this.registry.getComponent("slot", slot);
         if (!slotComponent || !slotComponent.object) return "Empty";
 
@@ -188,7 +188,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {number | undefined} The slot index or undefined
      */
-    getSlotIndex(slotEntity: Entity): number | undefined {
+    getSlotIndex(slotEntity: Entity) {
         const slotComponent = this.registry.getComponent("slot", slotEntity);
         return slotComponent?.index;
     }
@@ -206,7 +206,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {number} Remaining quantity (0 if all added, >0 if leftovers)
      */
-    addObjectToInventory(inventory: Entity, object: Entity, count: number): number {
+    addObjectToInventory(inventory: Entity, object: Entity, count: number) {
         const slots = this.getInventorySlots(inventory);
         
         // Try to stack with existing items first
@@ -242,7 +242,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {boolean} True if object can be stacked in the slot
      */
-    private canStackInSlot(slot: Entity, object: Entity): boolean {
+    private canStackInSlot(slot: Entity, object: Entity) {
         if (!this.slotHasObject(slot)) return false;
 
         const slotComponent = this.registry.getComponent("slot", slot);
@@ -272,7 +272,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {number} Remaining quantity (0 if all added, >0 if leftovers)
      */
-    public addObjectToSlot(slot: Entity, object: Entity, count: number): number {
+    public addObjectToSlot(slot: Entity, object: Entity, count: number) {
         if (count <= 0) return count;
 
         const slotComponent = this.registry.getComponent("slot", slot);
@@ -317,12 +317,14 @@ export class InventorySystem implements EntityProcessingSystem {
      * @param {Entity} slotEntity - The slot entity to modify
      * @param {number} quantity - Amount to remove (prevents negative removal)
      * @param {boolean} keepEntityRef - Whether to keep entity reference when quantity reaches 0
+     * 
+     * @returns {boolean} True if quantity was removed, false if nothing was removed
      */
-    removeQuantityFromSlot(slotEntity: Entity, quantity: number = 1, keepEntityRef: boolean = false): void {
-        if (quantity <= 0) return; // Prevent negative removal
+    removeQuantityFromSlot(slotEntity: Entity, quantity: number = 1, keepEntityRef: boolean = false) {
+        if (quantity <= 0) return false; // Prevent negative removal
 
         const slotComponent = this.registry.getComponent("slot", slotEntity);
-        if (!slotComponent || !slotComponent.object) return; // Nothing to remove
+        if (!slotComponent || !slotComponent.object) return false; // Nothing to remove
 
         slotComponent.count -= quantity;
 
@@ -332,6 +334,7 @@ export class InventorySystem implements EntityProcessingSystem {
             }
             slotComponent.count = 0;
         }
+        return true;
     }
 
     /**
@@ -339,12 +342,14 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @param {Entity} slotEntity - The slot entity to clear
      * @param {boolean} keepEntityRef - Whether to keep entity reference
+     * 
+     * @returns {boolean} True if object was removed, false if slot was empty or invalid
      */
-    removeObjectFromSlot(slotEntity: Entity, keepEntityRef: boolean = false): void {
+    removeObjectFromSlot(slotEntity: Entity, keepEntityRef: boolean = false) {
         const slotComponent = this.registry.getComponent("slot", slotEntity);
-        if (!slotComponent) return;
+        if (!slotComponent) return false;
         
-        this.removeQuantityFromSlot(slotEntity, slotComponent.count, keepEntityRef);
+        return this.removeQuantityFromSlot(slotEntity, slotComponent.count, keepEntityRef);
     }
 
     // ====================
@@ -357,23 +362,24 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @param {Entity} fromSlotEntity - Source slot
      * @param {Entity} toSlotEntity - Target slot
+     * 
+     * @returns {boolean} True if operation was successful, false if failed
      */
-    exchangeObjectInSlots(fromSlotEntity: Entity, toSlotEntity: Entity): void {
+    exchangeObjectInSlots(fromSlotEntity: Entity, toSlotEntity: Entity) {
         const fromSlot = this.registry.getComponent("slot", fromSlotEntity);
         const toSlot = this.registry.getComponent("slot", toSlotEntity);
 
         // Validate slots
-        if (!fromSlot || !toSlot || !fromSlot.object) return;
+        if (!fromSlot || !toSlot || !fromSlot.object) return false;
 
         const fromSlotOwner = this.registry.getComponent("hasOwner", fromSlotEntity);
         const toSlotOwner = this.registry.getComponent("hasOwner", toSlotEntity);
         
-        if (!fromSlotOwner || !toSlotOwner) return;
+        if (!fromSlotOwner || !toSlotOwner) return false;
 
         // Cross-inventory move
         if (fromSlotOwner.owner !== toSlotOwner.owner) {
-            this.moveObjectFromSlotToInventory(fromSlotEntity, toSlotOwner.owner);
-            return;
+            return this.moveObjectFromSlotToInventory(fromSlotEntity, toSlotOwner.owner);
         }
 
         // Same inventory exchange
@@ -383,6 +389,7 @@ export class InventorySystem implements EntityProcessingSystem {
             toSlot.count = fromSlot.count;
             fromSlot.object = null;
             fromSlot.count = 0;
+            return true;
         } else {
             // Both slots have objects, try to add to target slot first
             const leftOver = this.addObjectToSlot(toSlotEntity, fromSlot.object, fromSlot.count);
@@ -395,10 +402,11 @@ export class InventorySystem implements EntityProcessingSystem {
                 toSlot.count = fromSlot.count;
                 fromSlot.object = tempObject;
                 fromSlot.count = tempCount;
+                return true; // operation successful if swap happened
             } else {
                 // Some objects were added, remove them from source slot
                 const amountAdded = fromSlot.count - leftOver;
-                this.removeQuantityFromSlot(fromSlotEntity, amountAdded);
+                return this.removeQuantityFromSlot(fromSlotEntity, amountAdded);
             }
         }
     }
@@ -408,16 +416,18 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @param {Entity} slotEntity - Source slot
      * @param {Entity} inventoryEntity - Target inventory
+     * 
+     * @returns {boolean} True if object was moved, false if nothing was moved
      */
-    moveObjectFromSlotToInventory(slotEntity: Entity, inventoryEntity: Entity): void {
+    moveObjectFromSlotToInventory(slotEntity: Entity, inventoryEntity: Entity) {
         const slot = this.registry.getComponent("slot", slotEntity);
         const inventory = this.registry.getComponent("inventory", inventoryEntity);
         
-        if (!slot || !inventory || !slot.object) return;
+        if (!slot || !inventory || !slot.object) return false;
 
         const leftOver = this.addObjectToInventory(inventoryEntity, slot.object, slot.count);
-        if (leftOver === slot.count) return; // Nothing was moved
-        this.removeQuantityFromSlot(slotEntity, slot.count - leftOver);
+        if (leftOver === slot.count) return false; // Nothing was moved
+        return this.removeQuantityFromSlot(slotEntity, slot.count - leftOver);
     }
 
     // ====================
@@ -432,7 +442,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {Entity} The definition entity
      */
-    private getEntityDefinition(entity: Entity): Entity {
+    private getEntityDefinition(entity: Entity) {
         const instance = this.registry.getComponent("instance", entity);
         if (instance) {
             return instance.definition;
@@ -448,7 +458,7 @@ export class InventorySystem implements EntityProcessingSystem {
      * 
      * @returns {Entity[]} Array of child entities
      */
-    getChildEntities(entity: Entity): Entity[] {
+    getChildEntities(entity: Entity) {
         const childEntities: Entity[] = [];
         
         // Get inventory if entity has one
